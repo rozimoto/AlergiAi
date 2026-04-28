@@ -9,7 +9,7 @@ export interface AllergenAlert {
   id: string;
   userId: string;
   allergen: string;
-  severity: 'low' | 'medium' | 'high';
+  severity: 'minimal' | 'low' | 'moderate' | 'high' | 'severe';
   source: 'meal' | 'scan' | 'manual';
   mealId?: string;
   message: string;
@@ -22,7 +22,8 @@ export interface AllergenAlert {
 export interface AlertSettings {
   enabled: boolean;
   quietHours: { start: string; end: string };
-  severityThreshold: 'low' | 'medium' | 'high';
+  severityThreshold: 'minimal' | 'low' | 'moderate' | 'high' | 'severe';
+  notifyEmergencyContact?: boolean;
 }
 
 const SETTINGS_KEY = '@alert_settings';
@@ -60,19 +61,25 @@ const isQuietHours = (settings: AlertSettings): boolean => {
 };
 
 const shouldAlert = (severity: string, settings: AlertSettings): boolean => {
-  const levels = { low: 1, medium: 2, high: 3 };
-  return levels[severity as keyof typeof levels] >= levels[settings.severityThreshold];
+  const levels = { minimal: 1, low: 2, moderate: 3, high: 4, severe: 5 };
+  const threshold = settings.severityThreshold || 'minimal';
+  return (levels[severity as keyof typeof levels] || 1) >= (levels[threshold as keyof typeof levels] || 1);
 };
 
 export const createAlert = async (
   allergen: string,
-  severity: 'low' | 'medium' | 'high',
+  severity: 'minimal' | 'low' | 'moderate' | 'high' | 'severe',
   source: 'meal' | 'scan' | 'manual',
   mealId?: string,
   userAllergenSeverity?: 'minimal' | 'low' | 'moderate' | 'high' | 'severe'
 ): Promise<string> => {
   const user = auth.currentUser;
   if (!user) throw new Error('Not authenticated');
+
+  // Always use user's allergen severity if explicitly set, otherwise use computed
+  const severityLevels = { minimal: 1, low: 2, moderate: 3, high: 4, severe: 5 };
+  const finalSeverity: 'minimal' | 'low' | 'moderate' | 'high' | 'severe' =
+    userAllergenSeverity ? userAllergenSeverity : severity;
 
   // Request permissions if not already granted
   await requestNotificationPermissions();
@@ -81,9 +88,9 @@ export const createAlert = async (
     userId: user.uid,
     allergen,
     allergens: [allergen],
-    severity,
+    severity: finalSeverity,
     source,
-    message: `${severity.toUpperCase()} RISK: ${allergen} detected in your ${source}`,
+    message: `${finalSeverity.toUpperCase()} RISK: ${allergen} detected in your ${source}`,
     timestamp: new Date().toISOString(),
     read: false,
     acknowledged: false,
@@ -98,12 +105,10 @@ export const createAlert = async (
   console.log('createAlert: saved with id:', docRef.id);
   
   const settings = await getAlertSettings();
-  if (settings.enabled && shouldAlert(severity, settings) && !isQuietHours(settings)) {
-    await sendPushNotification(allergen, severity);
+  if (settings.enabled && shouldAlert(finalSeverity, settings) && !isQuietHours(settings)) {
+    await sendPushNotification(allergen, finalSeverity);
 
-    const isHighRisk = severity === 'high' ||
-      userAllergenSeverity === 'severe' ||
-      userAllergenSeverity === 'high';
+    const isHighRisk = finalSeverity === 'high' || finalSeverity === 'severe';
     if (isHighRisk) {
       await notifyEmergencyContact(allergen);
     }
@@ -154,7 +159,7 @@ export const notifyEmergencyContactForSymptom = async (symptomName: string): Pro
 };
 
 const sendPushNotification = async (allergen: string, severity: string) => {
-  const emoji = severity === 'high' ? '🚨' : severity === 'medium' ? '⚠️' : 'ℹ️';
+  const emoji = severity === 'severe' || severity === 'high' ? '🚨' : severity === 'moderate' ? '⚠️' : 'ℹ️';
   
   await Notifications.scheduleNotificationAsync({
     content: {

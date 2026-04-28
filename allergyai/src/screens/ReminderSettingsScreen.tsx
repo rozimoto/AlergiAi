@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Switch, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   MealReminder,
   loadReminders,
@@ -16,10 +17,12 @@ export default function ReminderSettings() {
   const [reminders, setReminders] = useState<MealReminder[]>([]);
   const [showTimePicker, setShowTimePicker] = useState<string | null>(null);
   const [permissionGranted, setPermissionGranted] = useState(false);
+  const [use24HourTime, setUse24HourTime] = useState(false);
   const { t } = useLanguage();
 
   useEffect(() => {
     init();
+    AsyncStorage.getItem('use_24_hour_time').then(val => setUse24HourTime(val === 'true'));
   }, []);
 
   const init = async () => {
@@ -80,9 +83,17 @@ export default function ReminderSettings() {
 
   const formatTime12Hour = (timeString: string) => {
     const [hours, minutes] = timeString.split(':').map(Number);
+    if (use24HourTime) {
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    }
     const period = hours >= 12 ? 'PM' : 'AM';
     const displayHours = hours % 12 || 12;
     return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+  };
+
+  const handleToggle24Hour = async (value: boolean) => {
+    setUse24HourTime(value);
+    await AsyncStorage.setItem('use_24_hour_time', String(value));
   };
 
   return (
@@ -105,7 +116,7 @@ export default function ReminderSettings() {
       )}
 
       {reminders.map(reminder => (
-        <View key={reminder.id} style={[styles.reminderCard, { backgroundColor: colors.surface }, reminder.enabled && { borderColor: '#2196F3', borderWidth: 1.5 }]}>
+        <View key={`${reminder.id}-${use24HourTime}`} style={[styles.reminderCard, { backgroundColor: colors.surface }, reminder.enabled && { borderColor: '#2196F3', borderWidth: 1.5 }]}>
           <View style={styles.reminderHeader}>
             <View style={[styles.iconCircle, { backgroundColor: reminder.enabled ? '#2196F320' : colors.background }]}>
               <Ionicons name={getMealIcon(reminder.mealType)} size={26} color={reminder.enabled ? '#2196F3' : colors.icon} />
@@ -143,7 +154,7 @@ export default function ReminderSettings() {
               <DateTimePicker
                 value={parseTime(reminder.time)}
                 mode="time"
-                is24Hour={false}
+                is24Hour={use24HourTime}
                 display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                 themeVariant={colorScheme}
                 style={styles.picker}
@@ -166,6 +177,27 @@ export default function ReminderSettings() {
           )}
         </View>
       ))}
+
+      <View style={[styles.toggleCard, { backgroundColor: colors.surface }]}>
+        <Text style={[styles.toggleLabel, { color: colors.text }]}>Time Format</Text>
+        <Text style={[styles.toggleSubLabel, { color: colors.icon }]}>Choose how times are displayed</Text>
+        <View style={styles.segmentRow}>
+          <TouchableOpacity
+            style={[styles.segmentButton, !use24HourTime && { backgroundColor: colors.primary }]}
+            onPress={() => handleToggle24Hour(false)}
+          >
+            <Text style={[styles.segmentText, { color: !use24HourTime ? '#fff' : colors.icon }]}>12h (AM/PM)</Text>
+            <Text style={[styles.segmentExample, { color: !use24HourTime ? '#fff' : colors.icon }]}>e.g. 3:00 PM</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.segmentButton, use24HourTime && { backgroundColor: colors.primary }]}
+            onPress={() => handleToggle24Hour(true)}
+          >
+            <Text style={[styles.segmentText, { color: use24HourTime ? '#fff' : colors.icon }]}>24h (Military)</Text>
+            <Text style={[styles.segmentExample, { color: use24HourTime ? '#fff' : colors.icon }]}>e.g. 15:00</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
 
       <View style={styles.infoBox}>
         <Ionicons name="information-circle" size={20} color="#2196F3" />
@@ -280,5 +312,44 @@ const styles = StyleSheet.create({
     color: '#1565c0',
     fontSize: 13,
     flex: 1,
+  },
+  toggleCard: {
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 16,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  toggleLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  toggleSubLabel: {
+    fontSize: 13,
+    marginTop: 3,
+    marginBottom: 12,
+  },
+  segmentRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 10,
+  },
+  segmentButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+  },
+  segmentText: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  segmentExample: {
+    fontSize: 12,
+    marginTop: 3,
   },
 });

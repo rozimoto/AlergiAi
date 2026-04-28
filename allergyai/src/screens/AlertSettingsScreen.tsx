@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Switch, ScrollView, TouchableOpacity, Platform, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getAlertSettings, saveAlertSettings, AlertSettings } from '../utils/allergenAlertService';
 import { useLanguage } from '../hooks/useLanguage';
 import { useTheme } from '../hooks/useTheme';
@@ -20,8 +21,11 @@ export default function AlertSettingsScreen() {
   const [saving, setSaving] = useState(false);
   const { t } = useLanguage();
 
+  const [use24HourTime, setUse24HourTime] = useState(false);
+
   useEffect(() => {
     loadSettings();
+    AsyncStorage.getItem('use_24_hour_time').then(val => setUse24HourTime(val === 'true'));
   }, []);
 
   const loadSettings = async () => {
@@ -63,6 +67,9 @@ export default function AlertSettingsScreen() {
 
   const displayTime = (timeString: string) => {
     const [hours, minutes] = timeString.split(':').map(Number);
+    if (use24HourTime) {
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    }
     const ampm = hours >= 12 ? 'PM' : 'AM';
     const h = hours % 12 || 12;
     return `${h}:${minutes.toString().padStart(2, '0')} ${ampm}`;
@@ -153,7 +160,7 @@ export default function AlertSettingsScreen() {
             <DateTimePicker
               value={parseTime(settings.quietHours.start)}
               mode="time"
-              is24Hour={false}
+              is24Hour={use24HourTime}
               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
               themeVariant={colorScheme}
               style={styles.picker}
@@ -183,7 +190,7 @@ export default function AlertSettingsScreen() {
             <DateTimePicker
               value={parseTime(settings.quietHours.end)}
               mode="time"
-              is24Hour={false}
+              is24Hour={use24HourTime}
               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
               themeVariant={colorScheme}
               style={styles.picker}

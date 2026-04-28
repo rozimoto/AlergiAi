@@ -8,7 +8,7 @@ export interface RiskScoreResult {
   matchedAllergens: string[];   // allergens found in this meal
   severity: 'LOW' | 'MODERATE' | 'HIGH';
   riskTier: 'Low Risk' | 'Moderate Risk' | 'High Risk';
-  alertSeverity: 'low' | 'medium' | 'high';
+  alertSeverity: 'minimal' | 'low' | 'moderate' | 'high' | 'severe';
   explanation?: string;
   factorData?: RiskFactorData;
 }

@@ -190,25 +190,37 @@ export default function AddMealScreen() {
       let riskScore = 0;
       let riskTier = t('addMeal.lowRisk');
 
+      // Fetch user's stored allergen severities
+      let allergensSeverity: { name: string; severity: string }[] = [];
+      try {
+        const allergenData = await getAllergens();
+        allergensSeverity = allergenData.allergensSeverity || [];
+      } catch (e) {
+        console.warn('Could not fetch allergen severities:', e);
+      }
+
       if (analysisResult?.allergens && analysisResult.allergens.length > 0) {
         allergensToAlert = analysisResult.allergens;
         riskScore = analysisResult.riskScore;
-        riskTier = analysisResult.riskScore <= 30 ? t('addMeal.lowRisk') : analysisResult.riskScore <= 70 ? t('addMeal.moderateRisk') : t('addMeal.highRisk');
+
+        // Use user's allergen severity if set, otherwise fall back to computed score
+        const severityLevels: Record<string, number> = { minimal: 1, low: 2, moderate: 3, high: 4, severe: 5 };
+        const severityLabels: Record<number, string> = { 1: 'Minimal', 2: 'Low', 3: 'Moderate', 4: 'High', 5: 'Severe' };
+        let maxLevel = severityLevels[getAlertSeverityFromScore(riskScore)] || 2;
+
+        for (const allergen of allergensToAlert) {
+          const stored = allergensSeverity.find(a => a.name.toLowerCase() === allergen.toLowerCase());
+          if (stored?.severity && severityLevels[stored.severity] !== undefined) {
+            maxLevel = Math.max(maxLevel, severityLevels[stored.severity]);
+          }
+        }
+        riskTier = severityLabels[maxLevel] + ' Risk';
       }
 
       if (allergensToAlert.length > 0) {
         console.log('Creating alerts for allergens:', allergensToAlert);
 
         const alertSeverity = getAlertSeverityFromScore(riskScore);
-
-        // Fetch user's stored allergen severities to pass to createAlert
-        let allergensSeverity: { name: string; severity: string }[] = [];
-        try {
-          const allergenData = await getAllergens();
-          allergensSeverity = allergenData.allergensSeverity || [];
-        } catch (e) {
-          console.warn('Could not fetch allergen severities:', e);
-        }
 
         const allergenList = allergensToAlert.join(', ');
         Alert.alert(

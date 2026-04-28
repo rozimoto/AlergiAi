@@ -94,12 +94,15 @@ export const updateReminder = async (reminder: MealReminder) => {
     await cancelReminder(reminder.mealType);
     if (reminder.enabled) {
       const [h, m] = reminder.time.split(':').map(Number);
-      const displayName = `${h % 12 || 12}:${m.toString().padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+      const use24Hour = (await AsyncStorage.getItem('use_24_hour_time')) === 'true';
+      const displayTime = use24Hour
+        ? `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
+        : `${h % 12 || 12}:${m.toString().padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
       await scheduleReminder(reminder);
       await Notifications.scheduleNotificationAsync({
         content: {
           title: `Don't forget to log your ${reminder.mealType}!`,
-          body: `Reminders are on. We'll notify you at ${reminder.time} every day.`,
+          body: `Reminders are on. We'll notify you at ${displayTime} every day.`,
           data: { mealType: reminder.mealType },
         },
         trigger: null,

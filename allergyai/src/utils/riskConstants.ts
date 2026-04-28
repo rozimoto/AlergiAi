@@ -18,12 +18,12 @@ export const getRiskTier = (score: number): 'Low Risk' | 'Moderate Risk' | 'High
     return 'High Risk';
 };
 
-export const getAlertSeverity = (riskTier: string): 'low' | 'medium' | 'high' => {
+export const getAlertSeverity = (riskTier: string): 'minimal' | 'low' | 'moderate' | 'high' | 'severe' => {
     if (riskTier === 'High Risk') return 'high';
-    if (riskTier === 'Moderate Risk') return 'medium';
+    if (riskTier === 'Moderate Risk') return 'moderate';
     return 'low';
 };
 
-export const getAlertSeverityFromScore = (score: number): 'low' | 'medium' | 'high' => {
+export const getAlertSeverityFromScore = (score: number): 'minimal' | 'low' | 'moderate' | 'high' | 'severe' => {
     return getAlertSeverity(getRiskTier(score));
 };
