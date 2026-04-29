@@ -221,24 +221,20 @@ export default function AddMealScreen() {
         console.log('Creating alerts for allergens:', allergensToAlert);
 
         const alertSeverity = getAlertSeverityFromScore(riskScore);
-
         const allergenList = allergensToAlert.join(', ');
+
+        for (const allergen of allergensToAlert) {
+          const stored = allergensSeverity.find(
+            a => a.name.toLowerCase() === allergen.toLowerCase()
+          );
+          const userAllergenSeverity = stored?.severity as any;
+          await createAlert(allergen, alertSeverity, 'meal', undefined, userAllergenSeverity);
+        }
+
         Alert.alert(
           t('addMeal.allergenDetected'),
           `${riskTier.toUpperCase()}: ${allergenList}\n\n${t('addMeal.riskScoreLabel')} ${riskScore}%`,
-          [{
-            text: t('common.ok'),
-            style: 'default',
-            onPress: async () => {
-              for (const allergen of allergensToAlert) {
-                const stored = allergensSeverity.find(
-                  a => a.name.toLowerCase() === allergen.toLowerCase()
-                );
-                const userAllergenSeverity = stored?.severity as any;
-                await createAlert(allergen, alertSeverity, 'meal', undefined, userAllergenSeverity);
-              }
-            }
-          }]
+          [{ text: t('common.ok'), style: 'default' }]
         );
       } else {
         console.log('No allergens detected');

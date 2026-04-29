@@ -62,11 +62,15 @@ export const scheduleReminder = async (reminder: MealReminder) => {
 
   try {
     const [hours, minutes] = reminder.time.split(':').map(Number);
-  
+    const use24Hour = (await AsyncStorage.getItem('use_24_hour_time')) === 'true';
+    const displayTime = use24Hour
+      ? `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
+      : `${hours % 12 || 12}:${minutes.toString().padStart(2, '0')} ${hours >= 12 ? 'PM' : 'AM'}`;
+
     await Notifications.scheduleNotificationAsync({
       content: {
         title: `Time to log your ${reminder.mealType}`,
-        body: `Don't forget to track what you're eating to stay safe from allergens.`,
+        body: `It's ${displayTime} — don't forget to track what you're eating to stay safe from allergens.`,
         data: { mealType: reminder.mealType },
       },
       trigger: {
