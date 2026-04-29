@@ -1,6 +1,6 @@
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, Firestore } from 'firebase/firestore';
-import { initializeAuth, getAuth, Auth, getReactNativePersistence } from 'firebase/auth';
+import { initializeAuth, getAuth, Auth, inMemoryPersistence } from 'firebase/auth';
 import { getFunctions } from 'firebase/functions';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import '../utils/networkLogger';
@@ -23,7 +23,7 @@ if (getApps().length === 0) {
   
   try {
     auth = initializeAuth(app, {
-      persistence: getReactNativePersistence(AsyncStorage)
+      persistence: inMemoryPersistence
     });
     console.log('Auth initialized with persistence');
   } catch (error) {

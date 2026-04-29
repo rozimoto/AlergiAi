@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Switch, ScrollView, TouchableOpacity, Platform,
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getAlertSettings, saveAlertSettings, AlertSettings } from '../utils/allergenAlertService';
+import { getAlertSettings, saveAlertSettings, AlertSettings, requestNotificationPermissions } from '../utils/allergenAlertService';
 import { useLanguage } from '../hooks/useLanguage';
 import { useTheme } from '../hooks/useTheme';
 
@@ -91,7 +91,19 @@ export default function AlertSettingsScreen() {
           </View>
           <Switch
             value={settings.enabled}
-            onValueChange={(value) => updateSettings({ enabled: value })}
+            onValueChange={async (value) => {
+              if (value) {
+                const granted = await requestNotificationPermissions();
+                if (!granted) {
+                  Alert.alert(
+                    'Permission Required',
+                    'Please enable notifications in your device Settings to receive allergy alerts.'
+                  );
+                  return;
+                }
+              }
+              updateSettings({ enabled: value });
+            }}
             trackColor={{ false: '#ddd', true: '#81c784' }}
             thumbColor={settings.enabled ? '#4caf50' : '#f4f3f4'}
           />

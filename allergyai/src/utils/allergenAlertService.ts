@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db, auth, functions } from '../config/firebase';
+import { isInQuietHours } from './quietHoursUtils';
 import { httpsCallable } from 'firebase/functions';
 import { getEmergencyContact } from './emergencyContactService';
 import { collection, addDoc, query, where, getDocs, updateDoc, doc, orderBy, limit } from 'firebase/firestore';
@@ -24,6 +25,7 @@ export interface AlertSettings {
   quietHours: { start: string; end: string };
   severityThreshold: 'minimal' | 'low' | 'moderate' | 'high' | 'severe';
   notifyEmergencyContact?: boolean;
+  emergencyContactPhone?: string;
 }
 
 const SETTINGS_KEY = '@alert_settings';
@@ -54,11 +56,8 @@ export const saveAlertSettings = async (settings: AlertSettings) => {
   await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
 };
 
-const isQuietHours = (settings: AlertSettings): boolean => {
-  const now = new Date();
-  const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-  return currentTime >= settings.quietHours.start || currentTime <= settings.quietHours.end;
-};
+export const isQuietHours = (settings: AlertSettings, now?: Date): boolean =>
+  isInQuietHours(settings.quietHours, now);
 
 const shouldAlert = (severity: string, settings: AlertSettings): boolean => {
   const levels = { minimal: 1, low: 2, moderate: 3, high: 4, severe: 5 };
@@ -139,11 +138,16 @@ const notifyEmergencyContact = async (reason: string, isSymptom = false) => {
   });
 
   // Send via Firebase Cloud Function (Twilio SMS + SendGrid email)
+  // Respect the contact's opted-in channel preference
+  const notifyVia = contact.notifyVia ?? 'both';
+  const contactPhone = (notifyVia === 'text' || notifyVia === 'both') ? contact.phone : null;
+  const contactEmail = (notifyVia === 'email' || notifyVia === 'both') ? contact.email : null;
+
   try {
     const sendEmergencyAlert = httpsCallable(functions, 'sendEmergencyAlert');
     await sendEmergencyAlert({
-      contactPhone: contact.phone,
-      contactEmail: contact.email,
+      contactPhone,
+      contactEmail,
       contactName,
       reason,
       userName,

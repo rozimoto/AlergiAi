@@ -21,6 +21,7 @@ export default function EmergencyContactScreen() {
     phone: '',
     email: '',
     notifyEnabled: false,
+    notifyVia: 'both',
   });
   const [originalContact, setOriginalContact] = useState<EmergencyContact | null>(null);
   const [loading, setLoading] = useState(true);
@@ -120,6 +121,43 @@ export default function EmergencyContactScreen() {
             />
           </View>
         </View>
+
+        {/* Notification Channel Preference */}
+        {contact.notifyEnabled && (
+          <View style={[styles.section, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Notify via</Text>
+            <Text style={[styles.description, { color: colors.icon }]}>
+              How should we reach your emergency contact?
+            </Text>
+            <View style={styles.channelButtons}>
+              {([
+                { value: 'email', label: 'Email', icon: 'mail-outline' },
+                { value: 'text',  label: 'Text',  icon: 'chatbubble-outline' },
+                { value: 'both',  label: 'Both',  icon: 'notifications-outline' },
+              ] as { value: 'email' | 'text' | 'both'; label: string; icon: any }[]).map(({ value, label, icon }) => {
+                const isSelected = contact.notifyVia === value;
+                return (
+                  <TouchableOpacity
+                    key={value}
+                    style={[
+                      styles.channelButton,
+                      {
+                        backgroundColor: isSelected ? colors.primary : colors.background,
+                        borderColor: colors.primary,
+                      },
+                    ]}
+                    onPress={() => update({ notifyVia: value })}
+                  >
+                    <Ionicons name={icon} size={18} color={isSelected ? '#fff' : colors.primary} />
+                    <Text style={[styles.channelButtonText, { color: isSelected ? '#fff' : colors.primary }]}>
+                      {label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        )}
 
         {/* Contact Info */}
         <View style={[styles.section, { backgroundColor: colors.surface }]}>
@@ -283,5 +321,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 1,
+  },
+  channelButtons: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 12,
+  },
+  channelButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 2,
+  },
+  channelButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

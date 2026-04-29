@@ -8,6 +8,7 @@ export interface EmergencyContact {
   phone: string;
   email: string;
   notifyEnabled: boolean;
+  notifyVia: 'email' | 'text' | 'both';
 }
 
 const EMERGENCY_CONTACT_KEY = '@emergency_contact';
@@ -20,6 +21,7 @@ export const getEmergencyContact = async (): Promise<EmergencyContact> => {
     phone: '',
     email: '',
     notifyEnabled: false,
+    notifyVia: 'both' as const,
   };
 };
 
