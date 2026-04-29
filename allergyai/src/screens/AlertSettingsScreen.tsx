@@ -103,24 +103,32 @@ export default function AlertSettingsScreen() {
         <Text style={[styles.description, { color: colors.icon }]}>{t('alertSettings.severityThresholdDescription')}</Text>
 
         <View style={styles.thresholdButtons}>
-          {['minimal', 'low', 'moderate', 'high', 'severe'].map((level) => (
-            <TouchableOpacity
-              key={level}
-              style={[
-                styles.thresholdButton,
-                styles[`${level}Button` as keyof typeof styles] as any,
-                settings.severityThreshold === level && styles.thresholdButtonActive,
-              ]}
-              onPress={() => updateSettings({ severityThreshold: level as any })}
-            >
-              <Text style={[
-                styles.thresholdText,
-                settings.severityThreshold === level && styles.thresholdTextActive
-              ]}>
-                {t('alertSettings.' + level)}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {[
+            { level: 'minimal', color: '#558B2F', bg: '#F1F8E9' },
+            { level: 'low',     color: '#2E7D32', bg: '#E8F5E9' },
+            { level: 'moderate',color: '#E65100', bg: '#FFF3E0' },
+            { level: 'high',    color: '#C62828', bg: '#FFEBEE' },
+            { level: 'severe',  color: '#880E4F', bg: '#FCE4EC' },
+          ].map(({ level, color, bg }) => {
+            const isSelected = settings.severityThreshold === level;
+            return (
+              <TouchableOpacity
+                key={level}
+                style={[
+                  styles.thresholdButton,
+                  { backgroundColor: isSelected ? color : bg, borderColor: color },
+                ]}
+                onPress={() => updateSettings({ severityThreshold: level as any })}
+              >
+                {isSelected && (
+                  <Ionicons name="checkmark-circle" size={16} color="#fff" style={{ marginBottom: 4 }} />
+                )}
+                <Text style={[styles.thresholdText, { color: isSelected ? '#fff' : color }]}>
+                  {t('alertSettings.' + level)}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
 
@@ -292,42 +300,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#ddd',
-  },
-  thresholdButtonActive: {
-    borderWidth: 3,
-  },
-  minimalButton: {
-    backgroundColor: '#F1F8E9',
-    borderColor: '#9CCC65',
-  },
-  lowButton: {
-    backgroundColor: '#E8F5E9',
-    borderColor: '#4caf50',
-  },
-  moderateButton: {
-    backgroundColor: '#FFF3E0',
-    borderColor: '#FFA726',
-  },
-  mediumButton: {
-    backgroundColor: '#fff3e0',
-    borderColor: '#ff9800',
-  },
-  highButton: {
-    backgroundColor: '#FFEBEE',
-    borderColor: '#EF5350',
-  },
-  severeButton: {
-    backgroundColor: '#FCE4EC',
-    borderColor: '#AD1457',
   },
   thresholdText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
-  },
-  thresholdTextActive: {
-    color: '#333',
+    fontWeight: '700',
   },
   timeRow: {
     flexDirection: 'row',
