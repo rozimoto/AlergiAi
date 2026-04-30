@@ -1,5 +1,6 @@
 import React from 'react';
 import { computeRiskScore, AllergenMatch } from '../utils/smartAnalyzer';
+import { expandAllergen } from '../utils/allergenMatcher';
 import {
   View,
   Text,
@@ -46,8 +47,28 @@ export default function ScanResultScreen() {
   const severityMap = new Map(
     (params.allergensSeverity ?? []).map(a => [a.name.toLowerCase(), a.severity])
   );
+
+  // For each allergen warning (which may be an ingredient like 'shrimp' rather than the
+  // profile name 'Shellfish'), find severity by:
+  //   1. Direct name match ('shellfish' → severe)
+  //   2. Expansion match: check if any profile allergen expands to include this ingredient
+  //      ('shrimp' falls under 'shellfish' category → severe)
+  const getSeverityForWarning = (name: string): 'minimal' | 'low' | 'moderate' | 'high' | 'severe' => {
+    const lower = name.toLowerCase();
+    const direct = severityMap.get(lower);
+    if (direct) return direct;
+
+    for (const [allergenName, sev] of severityMap.entries()) {
+      const expanded = expandAllergen(allergenName);
+      if (expanded.some(term => lower.includes(term) || term.includes(lower))) {
+        return sev;
+      }
+    }
+    return 'moderate';
+  };
+
   const allergenMatchList: AllergenMatch[] = (params.allergenWarnings ?? []).map(name => {
-    const sev = severityMap.get(name.toLowerCase()) ?? 'moderate';
+    const sev = getSeverityForWarning(name);
     return {
       allergen: name.toLowerCase(),
       severity: sev,
