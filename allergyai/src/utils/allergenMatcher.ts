@@ -63,7 +63,7 @@ const ALLERGEN_CATEGORY_MAP: Record<string, string[]> = {
         'bulgur', 'semolina', 'spelt', 'kamut', 'durum', 'einkorn',
         'farina', 'breadcrumbs', 'crouton', 'croutons', 'seitan',
         'wheat starch', 'wheat germ', 'wheat bran',
-        'pizza', 'pizza dough', 'pizza crust', 'bagel', 'tortilla',
+        'pizza', 'pizza dough', 'pizza crust', 'bagel', 'flour tortilla', 'wheat tortilla',
         'pita', 'pita bread', 'croissant', 'pretzel', 'cracker', 'roll',
         'bun', 'biscuit', 'panko', 'matzo', 'challah', 'focaccia',
         'sourdough', 'pie crust', 'pastry', 'dumpling', 'wrap',
@@ -170,8 +170,9 @@ export const matchIngredientsWallergens = (
         const normalIngredient = normalText(ingredient);
 
         return Array.from(expandedTerms).some(term =>
+            normalIngredient === term ||
             normalIngredient.includes(term) ||
-            term.includes(normalIngredient)
+            term.startsWith(normalIngredient)
         );
     });
 
