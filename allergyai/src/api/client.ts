@@ -792,6 +792,10 @@ export const removeAllergen = async (data: RemoveAllergenRequest): Promise<void>
       const allergens = stored ? JSON.parse(stored) : [];
       const filtered = allergens.filter((a: string) => a !== data.allergen);
       await AsyncStorage.setItem('@allergyai_allergens', JSON.stringify(filtered));
+      const storedSeverity = await AsyncStorage.getItem('@allergyai_allergens_severity');
+      const allergensSeverity = storedSeverity ? JSON.parse(storedSeverity) : [];
+      const filteredSeverity = allergensSeverity.filter((a: any) => a.name !== data.allergen);
+      await AsyncStorage.setItem('@allergyai_allergens_severity', JSON.stringify(filteredSeverity));
     } catch (error) {
       console.error('Failed to remove the allergen from storage:', error);
       throw error;
@@ -815,6 +819,49 @@ export const removeAllergen = async (data: RemoveAllergenRequest): Promise<void>
           allergens: currentAllergens.filter((a: string) => a !== data.allergen),
           allergensSeverity: currentAllergensSeverity.filter((a: any) => a.name !== data.allergen)
         });
+      }
+    },
+    undefined
+  );
+};
+
+export const updateAllergenSeverity = async (allergen: string, severity: 'minimal' | 'low' | 'moderate' | 'high' | 'severe'): Promise<void> => {
+  if (DEMO_MODE) {
+    try {
+      const storedSeverity = await AsyncStorage.getItem('@allergyai_allergens_severity');
+      const allergensSeverity = storedSeverity ? JSON.parse(storedSeverity) : [];
+      const updated = allergensSeverity.map((a: any) =>
+        a.name.toLowerCase() === allergen.toLowerCase() ? { ...a, severity } : a
+      );
+      if (!updated.some((a: any) => a.name.toLowerCase() === allergen.toLowerCase())) {
+        updated.push({ name: allergen, severity });
+      }
+      await AsyncStorage.setItem('@allergyai_allergens_severity', JSON.stringify(updated));
+    } catch (error) {
+      console.error('Failed to update allergen severity:', error);
+      throw error;
+    }
+    return;
+  }
+
+  return handleFirebaseCall(
+    async () => {
+      const firebaseUser = auth.currentUser;
+      if (!firebaseUser) throw new Error('User is not authenticated');
+
+      const userDocRef = doc(db, 'users', firebaseUser.uid);
+      const userDoc = await getDoc(userDocRef);
+      const userData = userDoc.exists() ? userDoc.data() : null;
+
+      if (userData) {
+        const current: any[] = userData.allergensSeverity || [];
+        const updated = current.map((a: any) =>
+          a.name.toLowerCase() === allergen.toLowerCase() ? { ...a, severity } : a
+        );
+        if (!updated.some((a: any) => a.name.toLowerCase() === allergen.toLowerCase())) {
+          updated.push({ name: allergen, severity });
+        }
+        await updateDoc(userDocRef, { allergensSeverity: updated });
       }
     },
     undefined

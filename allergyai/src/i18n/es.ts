@@ -290,6 +290,8 @@ export default {
     removeWarning: 'ADVERTENCIA: Eliminar "%{name}" de tu lista de alérgenos significa que la aplicación ya no te alertará sobre este ingrediente en los productos alimenticios.\n\nEsto podría ponerte en riesgo de exposición accidental. ¿Estás absolutamente seguro de que deseas continuar?',
     allergenRemoved: '¡Alérgeno eliminado exitosamente!',
     failedToRemove: 'Error al eliminar alérgeno',
+    changeSeverity: 'Cambiar Severidad',
+    failedToUpdate: 'Error al actualizar severidad',
   },
 
   // SymptomsScreen / AddSymptomScreen
