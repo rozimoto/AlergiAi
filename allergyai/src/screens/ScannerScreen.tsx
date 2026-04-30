@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { CameraView, Camera } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { analyzeImg } from '../utils/geminiService';
@@ -45,24 +46,10 @@ export default function ScannerScreen() {
     }, []);
 
     const convertImgToBase64 = async (imageUri: string): Promise<string> => {
-        try {
-            const response = await fetch(imageUri);
-            const blob = await response.blob();
-            const reader = new FileReader();
-
-            return new Promise((resolve, reject) => {
-                reader.onloadend = () => {
-                    const base64String = reader.result as string;
-                    const base64Data = base64String.split(',')[1];
-                    resolve(base64Data);
-                };
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-            });
-        } catch (error) {
-            console.error('Error converting image to base64:', error);
-            throw error;
-        }
+        const base64 = await FileSystem.readAsStringAsync(imageUri, {
+            encoding: FileSystem.EncodingType.Base64,
+        });
+        return base64;
     };
 
     const processImage = async (imageUri: string) => {

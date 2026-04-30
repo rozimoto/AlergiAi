@@ -1,11 +1,12 @@
 import axios from 'axios';
+import * as FileSystem from 'expo-file-system/legacy';
 import { GEMINI_API_KEY } from '@env';
 console.log(
   '[Gemini] key prefix (from @env):',
   GEMINI_API_KEY ? GEMINI_API_KEY.slice(0, 6) : 'MISSING'
 );
 
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 export interface GeminiScanResult {
     productName: string;
@@ -158,10 +159,9 @@ export const analyzeImg = async (base64Img: string, language: string = 'en'): Pr
       throw new Error('Could not analyze the image. No results returned.');
     }
   } catch (error: any) {
-    console.error(
-      'Error analyzing the image with Gemini:',
-      error?.response ? error.response.data : error.message,
-    );
-    throw new Error('Failed to analyze the image with Gemini.');
+    const apiError = error?.response?.data;
+    console.error('Error analyzing the image with Gemini:', apiError ?? error.message);
+    const detail = apiError?.error?.message ?? error.message ?? 'Unknown error';
+    throw new Error(`Gemini analysis failed: ${detail}`);
   }
 };
