@@ -17,7 +17,7 @@ import { createMeal } from '../api/client';
 
 interface RouteParams {
   detectedIngredients: string[];
-  allergenWarnings: string[]; // allergens from profile that matched
+  allergenWarnings: string[];
   safeIngredients: string[];
   productName: string;
   isFood: boolean;
@@ -31,7 +31,6 @@ export default function ScanResultScreen() {
   const {colors} = useTheme();
   const [saving, setSaving] = useState(false);
 
-  // 1) Safer product name (no empty / undefined)
   const safeProductName =
     params.productName && params.productName.trim() !== ''
       ? params.productName
@@ -40,7 +39,6 @@ export default function ScanResultScreen() {
   const isFood = params.isFood !== false;
   const isUnknown = !isFood && (safeProductName === 'Unknown' || safeProductName === 'Unknown Item');
 
-  // 2) Use shared AI risk helper (only for food items).
   const {
     riskScore,
     matchedAllergens,
@@ -192,7 +190,7 @@ export default function ScanResultScreen() {
           <View style={[styles.section, {backgroundColor: colors.surface}]}>
             <Text style={[styles.sectionTitle, {color: colors.text}]}>{t('scanResult.allergenWarnings')}</Text>
             {matchedAllergens.map((allergen, index) => (
-              <View key={index} style={styles.allergenItem}>
+              <View key={`allergen-${index}`} style={styles.allergenItem}>
                 <Ionicons name="alert-circle" size={24} color="#f44336" />
                 <Text style={styles.allergenText}>{allergen}</Text>
               </View>
@@ -205,7 +203,7 @@ export default function ScanResultScreen() {
           <View style={[styles.section, {backgroundColor: colors.surface}]}>
             <Text style={[styles.sectionTitle, {color: colors.text}]}>{t('scanResult.safeIngredients')}</Text>
             {params.safeIngredients.map((ingredient, index) => (
-              <View key={index} style={styles.safeItem}>
+              <View key={`safe-${index}`} style={styles.safeItem}>
                 <Ionicons
                   name="checkmark-circle-outline"
                   size={20}
@@ -223,7 +221,7 @@ export default function ScanResultScreen() {
             <Text style={[styles.sectionTitle, {color: colors.text}]}>{t('scanResult.allDetectedIngredients')}</Text>
             <View style={styles.ingredientsList}>
               {params.detectedIngredients.map((ingredient, index) => (
-                <View key={index} style={styles.ingredientChip}>
+                <View key={`ingredient-${index}`} style={styles.ingredientChip}>
                   <Text style={styles.ingredientChipText}>{ingredient}</Text>
                 </View>
               ))}
