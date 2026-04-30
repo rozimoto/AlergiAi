@@ -253,6 +253,10 @@ export default {
     sensitivityModerate: 'moderate',
     sensitivitySevere: 'severe',
     riskExplanation: 'Risk calculated from: %{severity} allergen severity (%{severityWeight}), %{exposure} exposure level (%{exposureWeight}), %{sensitivity} user sensitivity (%{sensitivityWeight}). Raw score: %{rawScore}/45.',
+    saveMeal: 'Save as Meal',
+    saveMealPrompt: 'Give this meal a name (or keep the suggested one):',
+    saveMealError: 'Could not save meal. Please try again.',
+    saved: 'Saved!',
   },
 
   // AllergenScreen

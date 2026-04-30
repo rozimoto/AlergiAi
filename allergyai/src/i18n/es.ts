@@ -253,6 +253,10 @@ export default {
     sensitivityModerate: 'moderada',
     sensitivitySevere: 'severa',
     riskExplanation: 'Riesgo calculado a partir de: severidad de alérgeno %{severity} (%{severityWeight}), nivel de exposición %{exposure} (%{exposureWeight}), sensibilidad del usuario %{sensitivity} (%{sensitivityWeight}). Puntuación bruta: %{rawScore}/45.',
+    saveMeal: 'Guardar como Comida',
+    saveMealPrompt: 'Dale un nombre a esta comida (o conserva el sugerido):',
+    saveMealError: 'No se pudo guardar la comida. Inténtalo de nuevo.',
+    saved: '¡Guardado!',
   },
 
   // AllergenScreen

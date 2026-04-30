@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { computeRiskScore, AllergenMatch } from '../utils/smartAnalyzer';
 import { expandAllergen } from '../utils/allergenMatcher';
 import {
@@ -7,11 +7,15 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '../hooks/useTheme';
 import { useLanguage } from '../hooks/useLanguage';
+import { createMeal } from '../api/client';
+import { createAlert } from '../utils/allergenAlertService';
 
 interface RouteParams {
   detectedIngredients: string[];
@@ -26,7 +30,10 @@ export default function ScanResultScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const params = route.params as RouteParams;
+  const { colors } = useTheme();
   const { t } = useLanguage();
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   // 1) Safer product name (no empty / undefined)
   const safeProductName =
@@ -95,6 +102,39 @@ export default function ScanResultScreen() {
 
   const handleDone = () => {
     navigation.navigate('Dashboard' as never);
+  };
+
+  const doSave = async (mealName: string) => {
+    setSaving(true);
+    try {
+      await createMeal({
+        items: params.detectedIngredients ?? [],
+        note: mealName,
+        allergens: matchedAllergens,
+      });
+      for (const allergen of matchedAllergens) {
+        const sev = getSeverityForWarning(allergen);
+        await createAlert(allergen, sev, 'scan', undefined, sev);
+      }
+      setSaved(true);
+    } catch {
+      Alert.alert(t('common.error'), t('scanResult.saveMealError'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveMeal = () => {
+    Alert.prompt(
+      t('scanResult.saveMeal'),
+      t('scanResult.saveMealPrompt'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('common.save'), onPress: (name) => doSave((name ?? '').trim() || safeProductName) },
+      ],
+      'plain-text',
+      safeProductName,
+    );
   };
 
   return (
@@ -247,17 +287,42 @@ export default function ScanResultScreen() {
 
       {/* Bottom Actions */}
       <View style={styles.bottomActions}>
-        <TouchableOpacity
-          style={styles.scanAgainButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="camera" size={20} color="#2196F3" />
-          <Text style={styles.scanAgainText}>{t('scanResult.scanAgain')}</Text>
-        </TouchableOpacity>
+        {isFood && !isUnknown && (
+          <TouchableOpacity
+            style={[styles.saveMealButton, saved && styles.saveMealButtonSaved]}
+            onPress={handleSaveMeal}
+            disabled={saving || saved}
+          >
+            {saving ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <>
+                <Ionicons
+                  name={saved ? 'checkmark-circle' : 'bookmark'}
+                  size={20}
+                  color="#fff"
+                />
+                <Text style={styles.saveMealText}>
+                  {saved ? t('scanResult.saved') : t('scanResult.saveMeal')}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+        )}
 
-        <TouchableOpacity style={styles.doneButton} onPress={handleDone}>
-          <Text style={styles.doneButtonText}>{t('scanResult.done')}</Text>
-        </TouchableOpacity>
+        <View style={styles.bottomRow}>
+          <TouchableOpacity
+            style={styles.scanAgainButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="camera" size={20} color="#2196F3" />
+            <Text style={styles.scanAgainText}>{t('scanResult.scanAgain')}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.doneButton} onPress={handleDone}>
+            <Text style={styles.doneButtonText}>{t('scanResult.done')}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -418,12 +483,33 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   bottomActions: {
-    flexDirection: 'row',
-    padding: 20,
+    padding: 16,
     paddingBottom: 35,
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: '#e0e0e0',
+    gap: 10,
+  },
+  saveMealButton: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 15,
+    borderRadius: 12,
+    backgroundColor: '#4CAF50',
+    gap: 8,
+    marginBottom: 2,
+  },
+  saveMealButtonSaved: {
+    backgroundColor: '#388E3C',
+  },
+  saveMealText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  bottomRow: {
+    flexDirection: 'row',
     gap: 10,
   },
   scanAgainButton: {
