@@ -181,15 +181,6 @@ export default function AddMealScreen() {
         }
       }
 
-      await createMeal({
-        items: ing,
-        note: finalName || t('addMeal.unnamedMeal')
-      });
-
-      let allergensToAlert: string[] = [];
-      let riskScore = 0;
-      let riskTier = t('addMeal.lowRisk');
-
       // Fetch user's stored allergen severities
       let allergensSeverity: { name: string; severity: string }[] = [];
       try {
@@ -199,11 +190,23 @@ export default function AddMealScreen() {
         console.warn('Could not fetch allergen severities:', e);
       }
 
+      const detectedAllergens = analysisResult?.allergens || [];
+
+      await createMeal({
+        items: ing,
+        note: finalName || t('addMeal.unnamedMeal'),
+        allergens: detectedAllergens
+      });
+
+      let allergensToAlert: string[] = [];
+      let riskScore = 0;
+      let riskTier = t('addMeal.lowRisk');  
+
+
       if (analysisResult?.allergens && analysisResult.allergens.length > 0) {
         allergensToAlert = analysisResult.allergens;
         riskScore = analysisResult.riskScore;
 
-        // Use user's allergen severity if set, otherwise fall back to computed score
         const severityLevels: Record<string, number> = { minimal: 1, low: 2, moderate: 3, high: 4, severe: 5 };
         const severityLabels: Record<number, string> = { 1: 'Minimal', 2: 'Low', 3: 'Moderate', 4: 'High', 5: 'Severe' };
         let maxLevel = severityLevels[getAlertSeverityFromScore(riskScore)] || 2;

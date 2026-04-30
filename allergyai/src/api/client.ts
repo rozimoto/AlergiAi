@@ -814,11 +814,12 @@ export const removeAllergen = async (data: RemoveAllergenRequest): Promise<void>
   );
 };
 
-export async function createMeal(payload: { items: string[]; note?: string }): Promise<Meal> {
+export async function createMeal(payload: { items: string[]; note?: string; allergens?: string[] }): Promise<Meal> {
   const newMeal: Meal = {
     id: `meal-${Date.now()}`,
     items: payload.items,
     notes: payload.note || '',
+    allergens: payload.allergens || [],
     createdAt: new Date().toISOString(),
   };
 
@@ -838,6 +839,7 @@ export async function createMeal(payload: { items: string[]; note?: string }): P
         userId: firebaseUser.uid,
         items: newMeal.items,
         notes: newMeal.notes,
+        allergens: newMeal.allergens,
         photoURL: '',
         createdAt: newMeal.createdAt
       });
