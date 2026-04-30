@@ -443,9 +443,12 @@ export default {
   // AlertSettingsScreen
   alertSettings: {
     alertSettings: 'Configuración de Alertas',
-    high: 'Riesgo Alto',
-    medium: 'Riesgo Medio',
-    low: 'Riesgo Bajo',
+    high: 'Alto',
+    medium: 'Medio',
+    low: 'Bajo',
+    minimal: 'Mínimo',
+    moderate: 'Moderado',
+    severe: 'Severo',
     notifyOn: 'Notificar en',
     save: 'Guardar',
     settingsSaved: 'Configuración guardada',
@@ -462,9 +465,6 @@ export default {
     emergencyContactDescription: 'Notificar al contacto para alertas de alto riesgo',
     emergencyContactPhone: 'Teléfono de contacto de emergencia',
     infoText: 'Las alertas te ayudan a evitar la exposición a alérgenos y rastrear patrones a lo largo del tiempo',
-    minimal: 'Mínimo',
-    moderate: 'Moderado',
-    severe: 'Severo',
   },
 
   // SymptomCorrelationScreen
