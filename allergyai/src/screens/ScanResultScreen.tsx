@@ -101,6 +101,7 @@ export default function ScanResultScreen() {
   const hasAllergens = matchedAllergens.length > 0;
 
   const handleDone = () => {
+    navigation.popToTop();
     navigation.navigate('Dashboard' as never);
   };
 
