@@ -256,13 +256,20 @@ export const analyzeMeal = async (payload: AnalyzeRequest): Promise<AnalyzeRespo
         .map(item => item.trim())
         .filter(Boolean);
 
-      // Create allergen matches with severity information
+      // Create allergen matches with severity information.
+      // Sensitivity is derived from severity: high/severe profile entries mean severe personal sensitivity.
+      const severityToSensitivity = (s: string): 'mild' | 'moderate' | 'severe' => {
+        if (s === 'high' || s === 'severe') return 'severe';
+        if (s === 'moderate') return 'moderate';
+        return 'mild';
+      };
       const allergenMatches = userAllergens.map((allergen: string) => {
         const severityInfo = allergensSeverity.find((as: any) => as.name.toLowerCase() === allergen.toLowerCase());
+        const sev: 'minimal' | 'low' | 'moderate' | 'high' | 'severe' = severityInfo?.severity || 'moderate';
         return {
           allergen: allergen.toLowerCase(),
-          severity: severityInfo?.severity || 'moderate' as 'minimal' | 'low' | 'moderate' | 'high' | 'severe',
-          sensitivity: 'moderate' as 'mild' | 'moderate' | 'severe'
+          severity: sev,
+          sensitivity: severityToSensitivity(sev),
         };
       });
 

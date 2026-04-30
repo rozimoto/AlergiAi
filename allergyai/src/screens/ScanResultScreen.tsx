@@ -37,14 +37,23 @@ export default function ScanResultScreen() {
   const isUnknown = !isFood && (safeProductName === 'Unknown' || safeProductName === 'Unknown Item');
 
   // 2) Build AllergenMatch[] using user's actual severity settings from their profile.
+  // sensitivity is derived from severity: high/severe profile entries mean severe personal sensitivity.
+  const severityToSensitivity = (s?: string): 'mild' | 'moderate' | 'severe' => {
+    if (s === 'high' || s === 'severe') return 'severe';
+    if (s === 'moderate') return 'moderate';
+    return 'mild';
+  };
   const severityMap = new Map(
     (params.allergensSeverity ?? []).map(a => [a.name.toLowerCase(), a.severity])
   );
-  const allergenMatchList: AllergenMatch[] = (params.allergenWarnings ?? []).map(name => ({
-    allergen: name.toLowerCase(),
-    severity: severityMap.get(name.toLowerCase()) ?? 'moderate',
-    sensitivity: 'moderate' as const,
-  }));
+  const allergenMatchList: AllergenMatch[] = (params.allergenWarnings ?? []).map(name => {
+    const sev = severityMap.get(name.toLowerCase()) ?? 'moderate';
+    return {
+      allergen: name.toLowerCase(),
+      severity: sev,
+      sensitivity: severityToSensitivity(sev),
+    };
+  });
 
   // 3) Use shared AI risk helper (only for food items).
   const {
