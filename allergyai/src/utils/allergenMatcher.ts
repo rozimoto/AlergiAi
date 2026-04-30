@@ -44,6 +44,8 @@ const ALLERGEN_CATEGORY_MAP: Record<string, string[]> = {
         'snail', 'escargot', 'abalone', 'langoustine', 'langoustines',
         'snow crab', 'king crab', 'dungeness crab', 'stone crab',
         'blue crab', 'krill', 'barnacle',
+        'cuttlefish', 'whelk', 'conch', 'cockle', 'cockles',
+        'geoduck', 'razor clam', 'razor clams',
     ],
     fish: [
         'salmon', 'tuna', 'cod', 'bass', 'sea bass', 'striped bass',
