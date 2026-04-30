@@ -62,6 +62,15 @@ export default function ScannerScreen() {
             // Analyze the image
             const geminiResult = await analyzeImg(base64Img, language);
 
+            // If quota was exceeded, warn the user before continuing
+            if ((geminiResult as any)._fallback) {
+                Alert.alert(
+                    'AI Quota Reached',
+                    'The AI scanner is temporarily unavailable (daily quota exceeded). Results may be incomplete. Add billing at aistudio.google.com to restore full functionality.',
+                    [{ text: 'Continue Anyway' }]
+                );
+            }
+
             // Get users allergens
             const allergenResponse = await getAllergens();
             const userAllergens = allergenResponse.allergens || [];

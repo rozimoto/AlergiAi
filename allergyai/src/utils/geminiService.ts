@@ -160,7 +160,21 @@ export const analyzeImg = async (base64Img: string, language: string = 'en'): Pr
     }
   } catch (error: any) {
     const apiError = error?.response?.data;
+    const status = error?.response?.status;
     console.error('Error analyzing the image with Gemini:', apiError ?? error.message);
+
+    // Quota exhausted (429) — return a graceful fallback so the app doesn't hard-crash
+    if (status === 429) {
+      console.warn('[Gemini] Quota exceeded — using offline fallback result');
+      return {
+        productName: 'Scanned Item',
+        detectedIngredients: [],
+        allergenCategories: [],
+        isFood: true,
+        _fallback: true,
+      } as any;
+    }
+
     const detail = apiError?.error?.message ?? error.message ?? 'Unknown error';
     throw new Error(`Gemini analysis failed: ${detail}`);
   }
