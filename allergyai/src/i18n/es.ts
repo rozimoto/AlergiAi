@@ -378,7 +378,6 @@ export default {
     filterAll: 'Todo',
     filterMinimal: 'Mínimo',
     filterLow: 'Bajo',
-    filterMedium: 'Medio',
     filterModerate: 'Moderado',
     filterHigh: 'Alto',
     filterSevere: 'Severo',

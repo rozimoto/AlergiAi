@@ -14,7 +14,7 @@ export default function AlertsScreen() {
   const navigation = useNavigation();
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'minimal' | 'low' | 'medium' | 'moderate' | 'high' | 'severe'>('all');
+  const [filter, setFilter] = useState<'all' | 'minimal' | 'low' | 'moderate' | 'high' | 'severe'>('all');
 
   useFocusEffect(
     React.useCallback(() => {
@@ -53,7 +53,6 @@ export default function AlertsScreen() {
       case 'severe': return '#880E4F';
       case 'high': return '#F44336';
       case 'moderate': return '#FF9800';
-      case 'medium': return '#FF9800';
       case 'low': return '#4CAF50';
       case 'minimal': return '#8BC34A';
       default: return '#9E9E9E';
@@ -164,7 +163,7 @@ export default function AlertsScreen() {
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={styles.filterRowContent}>
-        {(['all', 'minimal', 'low', 'medium', 'moderate', 'high', 'severe'] as const).map((f) => (
+        {(['all', 'minimal', 'low', 'moderate', 'high', 'severe'] as const).map((f) => (
           <TouchableOpacity
             key={f}
             style={[
