@@ -1,5 +1,5 @@
 import React from 'react';
-import { computeRiskScore } from '../utils/smartAnalyzer';
+import { computeRiskScore, AllergenMatch } from '../utils/smartAnalyzer';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { useLanguage } from '../hooks/useLanguage';
 interface RouteParams {
   detectedIngredients: string[];
   allergenWarnings: string[]; // allergens from profile that matched
+  allergensSeverity: { name: string; severity: 'minimal' | 'low' | 'moderate' | 'high' | 'severe' }[];
   safeIngredients: string[];
   productName: string;
   isFood: boolean;
@@ -35,7 +36,17 @@ export default function ScanResultScreen() {
   const isFood = params.isFood !== false;
   const isUnknown = !isFood && (safeProductName === 'Unknown' || safeProductName === 'Unknown Item');
 
-  // 2) Use shared AI risk helper (only for food items).
+  // 2) Build AllergenMatch[] using user's actual severity settings from their profile.
+  const severityMap = new Map(
+    (params.allergensSeverity ?? []).map(a => [a.name.toLowerCase(), a.severity])
+  );
+  const allergenMatchList: AllergenMatch[] = (params.allergenWarnings ?? []).map(name => ({
+    allergen: name.toLowerCase(),
+    severity: severityMap.get(name.toLowerCase()) ?? 'moderate',
+    sensitivity: 'moderate' as const,
+  }));
+
+  // 3) Use shared AI risk helper (only for food items).
   const {
     riskScore,
     matchedAllergens,
@@ -46,7 +57,7 @@ export default function ScanResultScreen() {
   } = isFood
     ? computeRiskScore(
         params.detectedIngredients ?? [],
-        params.allergenWarnings ?? [],
+        allergenMatchList,
       )
     : { riskScore: 0, matchedAllergens: [], severity: 'LOW' as const, riskTier: 'Low Risk' as const, explanation: '', factorData: undefined };
 

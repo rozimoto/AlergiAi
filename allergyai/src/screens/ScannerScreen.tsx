@@ -23,6 +23,7 @@ type RootStackParamList = {
         productName: string;
         detectedIngredients: string[];
         allergenWarnings: string[];
+        allergensSeverity: { name: string; severity: 'minimal' | 'low' | 'moderate' | 'high' | 'severe' }[];
         safeIngredients: string[];
         isFood: boolean;
     };
@@ -77,6 +78,7 @@ export default function ScannerScreen() {
             // Get users allergens
             const allergenResponse = await getAllergens();
             const userAllergens = allergenResponse.allergens || [];
+            const allergensSeverity = allergenResponse.allergensSeverity || [];
 
             // Compare ingredients with user allergens (using category-aware matching + AI categories)
             const { matches: allergenWarnings, safe: safeIngredients } =
@@ -91,6 +93,7 @@ export default function ScannerScreen() {
                 productName: geminiResult.productName || 'Unknown Product',
                 detectedIngredients: geminiResult.detectedIngredients,
                 allergenWarnings,
+                allergensSeverity,
                 safeIngredients,
                 isFood: geminiResult.isFood,
             });
