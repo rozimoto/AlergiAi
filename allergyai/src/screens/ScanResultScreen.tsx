@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
-import { computeRiskScore, AllergenMatch } from '../utils/smartAnalyzer';
-import { expandAllergen } from '../utils/allergenMatcher';
+import React, {useState} from 'react';
+import { computeRiskScore } from '../utils/smartAnalyzer';
 import {
   View,
   Text,
@@ -15,12 +14,10 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '../hooks/useTheme';
 import { useLanguage } from '../hooks/useLanguage';
 import { createMeal } from '../api/client';
-import { createAlert } from '../utils/allergenAlertService';
 
 interface RouteParams {
   detectedIngredients: string[];
-  allergenWarnings: string[]; // allergens from profile that matched
-  allergensSeverity: { name: string; severity: 'minimal' | 'low' | 'moderate' | 'high' | 'severe' }[];
+  allergenWarnings: string[];
   safeIngredients: string[];
   productName: string;
   isFood: boolean;
@@ -32,10 +29,9 @@ export default function ScanResultScreen() {
   const params = route.params as RouteParams;
   const { colors } = useTheme();
   const { t } = useLanguage();
+  const {colors} = useTheme();
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
 
-  // 1) Safer product name (no empty / undefined)
   const safeProductName =
     params.productName && params.productName.trim() !== ''
       ? params.productName
@@ -44,46 +40,6 @@ export default function ScanResultScreen() {
   const isFood = params.isFood !== false;
   const isUnknown = !isFood && (safeProductName === 'Unknown' || safeProductName === 'Unknown Item');
 
-  // 2) Build AllergenMatch[] using user's actual severity settings from their profile.
-  // sensitivity is derived from severity: high/severe profile entries mean severe personal sensitivity.
-  const severityToSensitivity = (s?: string): 'mild' | 'moderate' | 'severe' => {
-    if (s === 'high' || s === 'severe') return 'severe';
-    if (s === 'moderate') return 'moderate';
-    return 'mild';
-  };
-  const severityMap = new Map(
-    (params.allergensSeverity ?? []).map(a => [a.name.toLowerCase(), a.severity])
-  );
-
-  // For each allergen warning (which may be an ingredient like 'shrimp' rather than the
-  // profile name 'Shellfish'), find severity by:
-  //   1. Direct name match ('shellfish' → severe)
-  //   2. Expansion match: check if any profile allergen expands to include this ingredient
-  //      ('shrimp' falls under 'shellfish' category → severe)
-  const getSeverityForWarning = (name: string): 'minimal' | 'low' | 'moderate' | 'high' | 'severe' => {
-    const lower = name.toLowerCase();
-    const direct = severityMap.get(lower);
-    if (direct) return direct;
-
-    for (const [allergenName, sev] of severityMap.entries()) {
-      const expanded = expandAllergen(allergenName);
-      if (expanded.some(term => lower.includes(term) || term.includes(lower))) {
-        return sev;
-      }
-    }
-    return 'moderate';
-  };
-
-  const allergenMatchList: AllergenMatch[] = (params.allergenWarnings ?? []).map(name => {
-    const sev = getSeverityForWarning(name);
-    return {
-      allergen: name.toLowerCase(),
-      severity: sev,
-      sensitivity: severityToSensitivity(sev),
-    };
-  });
-
-  // 3) Use shared AI risk helper (only for food items).
   const {
     riskScore,
     matchedAllergens,
@@ -105,54 +61,56 @@ export default function ScanResultScreen() {
     navigation.navigate('Dashboard' as never);
   };
 
-  const doSave = async (mealName: string) => {
+  const handleSaveMeal = async () => {
+    if (!isFood) {
+      Alert.alert(t('common.error'), 'Cannot save non-food items as meals');
+      return;
+    }
+
     setSaving(true);
-    try {
-      await createMeal({
-        items: params.detectedIngredients ?? [],
-        note: mealName,
-        allergens: matchedAllergens,
-      });
-      for (const allergen of matchedAllergens) {
-        const sev = getSeverityForWarning(allergen);
-        await createAlert(allergen, sev, 'scan', undefined, sev);
-      }
-      setSaved(true);
-    } catch {
-      Alert.alert(t('common.error'), t('scanResult.saveMealError'));
+      try {
+        await createMeal({
+          items: params.detectedIngredients,
+          note: safeProductName,
+          allergens: matchedAllergens,
+        });
+
+        Alert.alert(
+          t('addMeal.saved'),
+          t('addMeal.mealLogged'),
+          [
+            {
+              text: t('common.ok'),
+              onPress: () => navigation.navigate('Dashboard' as never),
+            },
+          ]
+        );
+    } catch (error) {
+      console.error('Failed to save meal:', error);
+      Alert.alert(
+        t('common.error'), 
+        'Failed to save meal. Please try again.'
+      );
     } finally {
       setSaving(false);
     }
   };
 
-  const handleSaveMeal = () => {
-    Alert.prompt(
-      t('scanResult.saveMeal'),
-      t('scanResult.saveMealPrompt'),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        { text: t('common.save'), onPress: (name) => doSave((name ?? '').trim() || safeProductName) },
-      ],
-      'plain-text',
-      safeProductName,
-    );
-  };
-
   return (
-    <View style={styles.container}>
+      <View style={[styles.container, {backgroundColor: colors.background}]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, {backgroundColor: colors.surface, borderBottomColor: colors.cardBorder}]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={28} color="#000" />
+          <Ionicons name="arrow-back" size={28} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('scanResult.scanResults')}</Text>
+        <Text style={[styles.headerTitle, {color: colors.text}]}>{t('scanResult.scanResults')}</Text>
         <View style={{ width: 28 }} />
       </View>
 
       <ScrollView style={styles.content}>
         {/* Product Name */}
-        <View style={styles.productCard}>
-          <Text style={styles.productName}>{safeProductName}</Text>
+        <View style={[styles.productCard, {backgroundColor: colors.surface}]}>
+          <Text style={[styles.productName, {color: colors.text}]}>{safeProductName}</Text>
         </View>
 
         {/* Allergen Status + Risk score */}
@@ -177,7 +135,7 @@ export default function ScanResultScreen() {
               hasAllergens ? '#f44336' : '#4CAF50'
             }
           />
-          <Text style={styles.statusTitle}>
+          <Text style={[styles.statusTitle, {color: colors.text}]}>
             {isUnknown ? t('scanResult.unableToIdentify') :
              !isFood ? t('scanResult.notFoodItem') :
              hasAllergens ? t('scanResult.allergenDetected') : t('scanResult.safeToConsume')}
@@ -195,7 +153,7 @@ export default function ScanResultScreen() {
           {/* Risk score from AI helper — only show for food */}
           {isFood && !isUnknown && (
             <>
-              <Text style={styles.riskScoreText}>
+              <Text style={[styles.riskScoreText, {color: colors.text}]}>
                 {t('scanResult.riskScoreDisplay', {
                   score: riskScore,
                   tier: riskTier === 'Low Risk' ? t('scanResult.riskTierLow')
@@ -231,10 +189,10 @@ export default function ScanResultScreen() {
 
         {/* Allergen Warnings */}
         {isFood && hasAllergens && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t('scanResult.allergenWarnings')}</Text>
+          <View style={[styles.section, {backgroundColor: colors.surface}]}>
+            <Text style={[styles.sectionTitle, {color: colors.text}]}>{t('scanResult.allergenWarnings')}</Text>
             {matchedAllergens.map((allergen, index) => (
-              <View key={index} style={styles.allergenItem}>
+              <View key={`allergen-${index}`} style={styles.allergenItem}>
                 <Ionicons name="alert-circle" size={24} color="#f44336" />
                 <Text style={styles.allergenText}>{allergen}</Text>
               </View>
@@ -244,16 +202,16 @@ export default function ScanResultScreen() {
 
         {/* Safe Ingredients */}
         {isFood && params.safeIngredients.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t('scanResult.safeIngredients')}</Text>
+          <View style={[styles.section, {backgroundColor: colors.surface}]}>
+            <Text style={[styles.sectionTitle, {color: colors.text}]}>{t('scanResult.safeIngredients')}</Text>
             {params.safeIngredients.map((ingredient, index) => (
-              <View key={index} style={styles.safeItem}>
+              <View key={`safe-${index}`} style={styles.safeItem}>
                 <Ionicons
                   name="checkmark-circle-outline"
                   size={20}
                   color="#4CAF50"
                 />
-                <Text style={styles.safeText}>{ingredient}</Text>
+                <Text style={[styles.safeText, {color: colors.text}]}>{ingredient}</Text>
               </View>
             ))}
           </View>
@@ -261,11 +219,11 @@ export default function ScanResultScreen() {
 
         {/* All Detected Ingredients */}
         {isFood && params.detectedIngredients.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t('scanResult.allDetectedIngredients')}</Text>
+          <View style={[styles.section, {backgroundColor: colors.surface}]}>
+            <Text style={[styles.sectionTitle, {color: colors.text}]}>{t('scanResult.allDetectedIngredients')}</Text>
             <View style={styles.ingredientsList}>
               {params.detectedIngredients.map((ingredient, index) => (
-                <View key={index} style={styles.ingredientChip}>
+                <View key={`ingredient-${index}`} style={styles.ingredientChip}>
                   <Text style={styles.ingredientChipText}>{ingredient}</Text>
                 </View>
               ))}
@@ -287,43 +245,40 @@ export default function ScanResultScreen() {
       </ScrollView>
 
       {/* Bottom Actions */}
-      <View style={styles.bottomActions}>
-        {isFood && !isUnknown && (
-          <TouchableOpacity
-            style={[styles.saveMealButton, saved && styles.saveMealButtonSaved]}
-            onPress={handleSaveMeal}
-            disabled={saving || saved}
-          >
-            {saving ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <>
-                <Ionicons
-                  name={saved ? 'checkmark-circle' : 'bookmark'}
-                  size={20}
-                  color="#fff"
-                />
-                <Text style={styles.saveMealText}>
-                  {saved ? t('scanResult.saved') : t('scanResult.saveMeal')}
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
-        )}
+      <View style={[styles.bottomActions, {backgroundColor: colors.surface, borderTopColor: colors.cardBorder}]}>
+      {isFood && (
+        <TouchableOpacity
+          style={[styles.saveMealButton, {backgroundColor: colors.success}]}
+          onPress={handleSaveMeal}
+          disabled={saving}
+        >
+          {saving ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <>
+              <Ionicons name="download" size={18} color="#fff" />
+              <Text style={styles.saveMealButtonText}>{t('addMeal.saveMeal')}</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      )}
 
-        <View style={styles.bottomRow}>
-          <TouchableOpacity
-            style={styles.scanAgainButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="camera" size={20} color="#2196F3" />
-            <Text style={styles.scanAgainText}>{t('scanResult.scanAgain')}</Text>
-          </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.scanAgainButton, {borderColor: colors.secondary}]}
+        onPress={() => navigation.goBack()}
+        disabled={saving}
+      >
+        <Ionicons name="camera" size={20} color={colors.secondary} />
+        <Text style={[styles.scanAgainText, {color: colors.secondary}]}>{t('scanResult.scanAgain')}</Text>
+      </TouchableOpacity>
 
-          <TouchableOpacity style={styles.doneButton} onPress={handleDone}>
-            <Text style={styles.doneButtonText}>{t('scanResult.done')}</Text>
-          </TouchableOpacity>
-        </View>
+      <TouchableOpacity 
+        style={[styles.doneButton, {backgroundColor: colors.secondary}]} 
+        onPress={handleDone}
+        disabled={saving}
+      >
+        <Text style={styles.doneButtonText}>{t('scanResult.done')}</Text>
+      </TouchableOpacity>
       </View>
     </View>
   );
@@ -492,26 +447,18 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   saveMealButton: {
+    flex: 1,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 15,
-    borderRadius: 12,
-    backgroundColor: '#4CAF50',
+    borderRadius: 10,
     gap: 8,
-    marginBottom: 2,
   },
-  saveMealButtonSaved: {
-    backgroundColor: '#388E3C',
-  },
-  saveMealText: {
+  saveMealButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '700',
-  },
-  bottomRow: {
-    flexDirection: 'row',
-    gap: 10,
+    fontWeight: '600',
   },
   scanAgainButton: {
     flex: 1,
