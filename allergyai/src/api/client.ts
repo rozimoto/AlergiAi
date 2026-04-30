@@ -747,16 +747,18 @@ export const addAllergen = async (data: AddAllergenRequest): Promise<void> => {
       const allergens = stored ? JSON.parse(stored) : [];
       const storedSeverity = await AsyncStorage.getItem('@allergyai_allergens_severity');
       const allergensSeverity = storedSeverity ? JSON.parse(storedSeverity) : [];
-      
+
       if (!allergens.includes(data.allergen)) {
         allergens.push(data.allergen);
-        allergensSeverity.push({ name: data.allergen, severity: data.severity || 'moderate' });
-        await AsyncStorage.setItem('@allergyai_allergens', JSON.stringify(allergens));
-        await AsyncStorage.setItem('@allergyai_allergens_severity', JSON.stringify(allergensSeverity));
       }
+      // Upsert severity: replace any stale entry for this allergen
+      const filtered = allergensSeverity.filter((a: any) => a.name.toLowerCase() !== data.allergen.toLowerCase());
+      filtered.push({ name: data.allergen, severity: data.severity || 'moderate' });
+      await AsyncStorage.setItem('@allergyai_allergens', JSON.stringify(allergens));
+      await AsyncStorage.setItem('@allergyai_allergens_severity', JSON.stringify(filtered));
     } catch (error) {
       console.error('Failed to add the allergen to storage:', error);
-      throw error;      
+      throw error;
     }
     return;
   }
@@ -772,13 +774,19 @@ export const addAllergen = async (data: AddAllergenRequest): Promise<void> => {
 
       if (userData) {
         const currentAllergens = userData.allergens || [];
-        const currentAllergensSeverity = userData.allergensSeverity || [];
-        if (!currentAllergens.includes(data.allergen)) {
-          await updateDoc(userDocRef, {
-            allergens: [...currentAllergens, data.allergen],
-            allergensSeverity: [...currentAllergensSeverity, { name: data.allergen, severity: data.severity || 'moderate' }]
-          });
-        }
+        const currentAllergensSeverity: any[] = userData.allergensSeverity || [];
+        const newAllergens = currentAllergens.includes(data.allergen)
+          ? currentAllergens
+          : [...currentAllergens, data.allergen];
+        // Upsert severity: replace any stale entry for this allergen
+        const filteredSeverity = currentAllergensSeverity.filter(
+          (a: any) => a.name.toLowerCase() !== data.allergen.toLowerCase()
+        );
+        filteredSeverity.push({ name: data.allergen, severity: data.severity || 'moderate' });
+        await updateDoc(userDocRef, {
+          allergens: newAllergens,
+          allergensSeverity: filteredSeverity,
+        });
       }
     },
     undefined
